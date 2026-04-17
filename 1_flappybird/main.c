@@ -1,26 +1,49 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 640
 
-#define PLAYER_WIDTH 24
-#define PLAYER_HEIGHT 64
+#define PLAYER_WIDTH 64
+#define PLAYER_HEIGHT 48
+#define GRAVITY 800 / 1000
 
 struct {
-  SDL_FRect rect;
+  SDL_FRect rect; // Bounding box for player.
+  float vely; // Y velocity.
 } player;
 
 #define MAX_PIPES 10
 
 struct {
-  SDL_FRect rects[MAX_PIPES];
-  int active;
+  SDL_FRect rects[MAX_PIPES]; // The bounding boxes of the pipes.
+  int active; // Current number of pipes that are active.
 } pipes;
 
 void init_player() {
-  player.rect = (SDL_FRect){ 0.0, 0.0, PLAYER_WIDTH, PLAYER_HEIGHT };
+  player.rect = (SDL_FRect){
+	(SCREEN_WIDTH / 2) - (PLAYER_WIDTH / 2),
+	(SCREEN_HEIGHT / 2) - (PLAYER_HEIGHT / 2),
+	PLAYER_WIDTH,
+	PLAYER_HEIGHT
+  };
+  player.vely = 0;
+}
+
+void draw_player(SDL_Renderer* renderer) {
+  SDL_SetRenderDrawColor(renderer, 0xff, 0x0, 0x0, 0xff);
+  SDL_RenderFillRect(renderer, &(player.rect));
+}
+
+void update_player(float deltaTime) {
+  player.rect.y += player.vely;
+  player.vely += deltaTime * GRAVITY;
+}
+
+void player_jump() {
+  
 }
 
 void init_pipes() {
@@ -61,20 +84,33 @@ int main(int argc, char** argv)
 
   init_player();
   init_pipes();
-  place_pipe(64.0f, 64.0f, 48.0f, 100.0f);
 
   SDL_Event event;
   bool running = true;
+
+  uint64_t lastTime = SDL_GetTicks();
+  float deltaTime = 0.0f;
   while (running) {
 	while (SDL_PollEvent(&event) == true) {
 	  if (event.type == SDL_EVENT_QUIT)
 		running = false;
 	}
 
+	uint64_t currentTime = SDL_GetTicks();
+	deltaTime = (currentTime - lastTime) / 1000.0f;
+	lastTime = currentTime;
+
+	update_player(deltaTime);
+
 	SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xff);
 	SDL_RenderClear(renderer);
+	
 	draw_pipes(renderer);
+	draw_player(renderer);
+	
 	SDL_RenderPresent(renderer);
+
+	SDL_Delay(1);
   }
 
   SDL_DestroySurface(surface);
