@@ -20,7 +20,9 @@ struct {
 
 #define MAX_PIPES 100
 #define PIPE_SPEED 100.0f
-#define PIPE_GEN_INTERVAL 5
+#define PIPE_GEN_INTERVAL 3.7f
+#define PIPE_WIDTH 128
+#define PIPE_SPACING 250
 
 struct {
   SDL_FRect rects[MAX_PIPES]; // The bounding boxes of the pipes.
@@ -63,11 +65,11 @@ void init_pipes() {
   pipes.timeTilNextPipeGen = PIPE_GEN_INTERVAL;
 }
 
-void place_pipe(float x, float y, float width, float height) {
+void place_pipe(float x, float y, float height) {
   if (pipes.active == MAX_PIPES)
 	return;
 
-  pipes.rects[pipes.active] = (SDL_FRect){ x, y, width, height };
+  pipes.rects[pipes.active] = (SDL_FRect){ x, y, PIPE_WIDTH, height };
   pipes.active++;
 }
 
@@ -78,12 +80,12 @@ void draw_pipes(SDL_Renderer* renderer) {
 
 void gen_pipe() {
   // Top
-  place_pipe(0,0,0,0);
+  float topBottomY = SDL_randf() * (SCREEN_HEIGHT - 64 - PIPE_SPACING);
+  place_pipe(SCREEN_WIDTH, 0, topBottomY);
 
   // Bottom
-  place_pipe(0,0,0,0);
-  
-  pipes.timeTilNextPipeGen = 0;
+  float bottomTopY = topBottomY + PIPE_SPACING;
+  place_pipe(SCREEN_WIDTH, bottomTopY, SCREEN_HEIGHT - bottomTopY);
 }
 
 void update_pipes(float deltaTime) {
@@ -94,6 +96,7 @@ void update_pipes(float deltaTime) {
   pipes.timeTilNextPipeGen -= deltaTime;
   if (pipes.timeTilNextPipeGen <= 0) {
 	gen_pipe();
+	pipes.timeTilNextPipeGen += PIPE_GEN_INTERVAL;
   }
 }
 
@@ -115,6 +118,8 @@ int main(int argc, char** argv)
   }
 
   surface = SDL_GetWindowSurface(window);
+
+  SDL_srand(0);
 
   init_player();
   init_pipes();
