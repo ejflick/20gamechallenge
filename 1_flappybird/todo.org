@@ -1,0 +1,14 @@
+* Fixes
+** TODO Fix pipe rendering:
+*** TODO Top pipe mouth needs to be offset by -8
+*** TODO Should just render the body before the mouth to make things simpler.
+* Must do
+** TODO Flap animation
+** TODO Flapping sound
+** TODO Collision sound
+** TODO Death sound
+** TODO Better looking sky
+** TODO Score
+* Maybes
+** TODO High scores
+** TODO Clouds in the background
