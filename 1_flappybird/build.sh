@@ -5,7 +5,7 @@ if [[ $1 == "--clean" ]]; then
 	exit
 fi
 
-CFLAGS=$(pkg-config --cflags --libs sdl3)
+CFLAGS=$(pkg-config --cflags --libs sdl3 sdl3-image)
 
 set -x
 gcc -o flappybird main.c $CFLAGS
