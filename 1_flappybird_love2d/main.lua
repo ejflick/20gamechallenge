@@ -6,6 +6,7 @@ function love.load()
    gfx.setDefaultFilter("nearest", "nearest")
    spriteSheet = gfx.newImage("sprites.png")
    flapSound = love.audio.newSource(love.sound.newSoundData("jump.wav"))
+   hurtSound = love.audio.newSource(love.sound.newSoundData("hitHurt.wav"))
 
    -- Player variables
    gravity = 17
@@ -50,16 +51,20 @@ end
 
 function toCollisionState()
    state = "collision"
-   vel = -9
+   vel = -20
    gravity = 40
+   love.audio.stop()
+   hurtSound:play()
 end
 
 function updatePlayer(dt)
    if flap then
 	  vel = -9
 	  flap = false
+	  flapSound:seek(0, "seconds")
+	  flapSound:play()
+
 	  if flapTimer <= 0 then
-		 flapSound:play()
 		 flapTimer = 0.3
 	  end
    end
