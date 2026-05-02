@@ -1,14 +1,32 @@
 local gfx = love.graphics
 
+local font = nil
+local spriteSheet = nil
+local flapSound, hurtSound = nil
+
 function love.load()
    screenWidth, screenHeight = gfx.getDimensions()
 
    gfx.setDefaultFilter("nearest", "nearest")
-   spriteSheet = gfx.newImage("sprites.png")
-   flapSound = love.audio.newSource(love.sound.newSoundData("jump.wav"))
-   hurtSound = love.audio.newSource(love.sound.newSoundData("hitHurt.wav"))
 
+   if not font then
+	  font = love.graphics.newImageFont("font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+   end
+   
+   if not spriteSheet then
+	  spriteSheet = gfx.newImage("sprites.png")
+   end
+
+   if not flapSound then
+	  flapSound = love.audio.newSource(love.sound.newSoundData("jump.wav"))
+   end
+
+   if not hurtSound then
+	  hurtSound = love.audio.newSource(love.sound.newSoundData("hitHurt.wav"))
+   end
+   
    -- Player variables
+   score = 0
    gravity = 17
    vel = 0
    flap = false
@@ -30,6 +48,8 @@ function love.load()
 	  speed = 128
    }
    pipeQuad = gfx.newQuad(0, 16, 35, 168, spriteSheet)
+
+   gfx.setFont(font)
 
    state = "playing"
 end
@@ -165,11 +185,15 @@ function love.draw()
    if state == "playing" then
 	  drawPipes()
 	  drawPlayer()
+	  gfx.setColor(0.1, 0.1, 0.1, 1)
+	  gfx.print(score, 5, 5, 0, 2, 2)
+	  gfx.setColor(1, 1, 1, 1)
+	  gfx.print(score, 2, 2, 0, 2, 2)
    elseif state == "collision" then
 	  drawPipes()
 	  drawPlayer()
    elseif state == "showscore" then
-	  gfx.print("0", 32, 32)
+	  gfx.print(score, 32, 32, 0, 4, 4)
    end
 end
 
