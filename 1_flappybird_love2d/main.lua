@@ -5,7 +5,6 @@ function love.load()
 
    gfx.setDefaultFilter("nearest", "nearest")
    spriteSheet = gfx.newImage("sprites.png")
-   spriteSheet:setWrap("clampzero", "clamp")
 
    -- Player variables
    vel = 0
@@ -15,20 +14,19 @@ function love.load()
    x = (screenWidth / 4) - (pwidth / 2)
    y = (screenHeight / 2) - (pheight / 2)
    pframes = {
-	  gfx.newQuad(0, 0, 16, 12, spriteSheet)
+	  gfx.newQuad(0, 0, 16, 12, spriteSheet),
+	  gfx.newQuad(16, 0, 16, 12, spriteSheet)
    }
    ptransform = love.math.newTransform()
+   flapTimer = 0
 
    local interval = 3.7
    pipes = {
 	  interval = interval,
 	  timeTilNext = interval,
-	  speed = 100
+	  speed = 128
    }
    pipeQuad = gfx.newQuad(0, 16, 35, 168, spriteSheet)
-
-   baseScaleTransform = love.math.newTransform()
-   baseScaleTransform:scale(4)
 
    state = "playing"
 end
@@ -52,17 +50,27 @@ function updatePlayer(dt)
    if flap then
 	  vel = -9
 	  flap = false
+	  if flapTimer <= 0 then
+		 flapTimer = 0.3
+	  end
    end
 
    y = y + vel
    vel = vel + (dt * 17)
+   if y < 0 then y = 0 end
+
+   if y > screenHeight + pheight then state = "collision" end
 
    if playerCollidesWithPipe() then
 	  state = "collision"
    end
+
+   if flapTimer > 0 then
+	  flapTimer = flapTimer - dt
+   end
 end
 
-local pipeSpacing = 270
+local pipeSpacing = 250
 function genPipe()
    local topBottomY = love.math.random() * (screenHeight - 64 - pipeSpacing)
    table.insert(pipes, {x=screenWidth, y=0, width=128, height=topBottomY, isTop=true})
@@ -74,7 +82,7 @@ end
 function updatePipes(dt)
    for i=#pipes,1,-1 do
 	  local p = pipes[i]
-	  p.x = p.x - (dt * 100)
+	  p.x = p.x - (dt * pipes.speed)
 
 	  if p.x < -p.width - 12 then
 		 table.remove(pipes, i)
@@ -102,7 +110,13 @@ function drawPlayer()
    ptransform:reset()
    ptransform:translate(x, y)
    ptransform:scale(4)
-   gfx.draw(spriteSheet, pframes[1], ptransform)
+   
+   local frame = pframes[1]
+   if flapTimer > 0 then
+	  frame = pframes[2]
+   end
+
+   gfx.draw(spriteSheet, frame, ptransform)
 end
 
 local pipeTransform = love.math.newTransform()
@@ -112,10 +126,10 @@ function drawPipes()
 
 	  pipeTransform:reset()
 	  if p.isTop then
-		 pipeTransform:translate(p.x, p.height)
+		 pipeTransform:translate(math.floor(p.x), math.floor(p.height))
 		 pipeTransform:scale(4, -4)
 	  else
-		 pipeTransform:translate(p.x, p.y)
+		 pipeTransform:translate(math.floor(p.x), math.floor(p.y))
 		 pipeTransform:scale(4, 4)
 	  end
 
