@@ -7,6 +7,7 @@ function love.load()
    spriteSheet = gfx.newImage("sprites.png")
 
    -- Player variables
+   gravity = 17
    vel = 0
    flap = false
    pwidth = 64
@@ -46,6 +47,12 @@ function playerCollidesWithPipe()
    return false
 end
 
+function toCollisionState()
+   state = "collision"
+   vel = -9
+   gravity = 40
+end
+
 function updatePlayer(dt)
    if flap then
 	  vel = -9
@@ -56,13 +63,11 @@ function updatePlayer(dt)
    end
 
    y = y + vel
-   vel = vel + (dt * 17)
+   vel = vel + (dt * gravity)
    if y < 0 then y = 0 end
 
-   if y > screenHeight + pheight then state = "collision" end
-
-   if playerCollidesWithPipe() then
-	  state = "collision"
+   if y > screenHeight + pheight or playerCollidesWithPipe() then
+	  toCollisionState()
    end
 
    if flapTimer > 0 then
@@ -98,11 +103,21 @@ function updatePipes(dt)
    end
 end
 
+function updatePlayerColl(dt)
+   y = y + vel
+   vel = vel + (dt * gravity)
+
+   if y > screenHeight + 400 then
+	  state = "showscore"
+   end
+end
+
 function love.update(dt)
    if state == "playing" then
 	  updatePlayer(dt)
 	  updatePipes(dt)
    elseif state == "collision" then
+	  updatePlayerColl(dt)
    end
 end
 
@@ -146,6 +161,8 @@ function love.draw()
    elseif state == "collision" then
 	  drawPipes()
 	  drawPlayer()
+   elseif state == "showscore" then
+	  gfx.print("0", 32, 32)
    end
 end
 
