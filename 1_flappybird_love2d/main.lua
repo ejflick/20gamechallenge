@@ -5,6 +5,7 @@ function love.load()
 
    gfx.setDefaultFilter("nearest", "nearest")
    spriteSheet = gfx.newImage("sprites.png")
+   flapSound = love.audio.newSource(love.sound.newSoundData("jump.wav"))
 
    -- Player variables
    gravity = 17
@@ -58,6 +59,7 @@ function updatePlayer(dt)
 	  vel = -9
 	  flap = false
 	  if flapTimer <= 0 then
+		 flapSound:play()
 		 flapTimer = 0.3
 	  end
    end
