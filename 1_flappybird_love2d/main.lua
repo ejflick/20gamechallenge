@@ -33,6 +33,21 @@ function love.load()
    state = "playing"
 end
 
+function aabb(x1, y1, w1, h1, x2, y2, w2, h2)
+   return x1 < x2 + w2 and x1 + w1 > x2 and y1 < y2 + h2 and y1 + h1 > y2
+end
+
+function playerCollidesWithPipe()
+   for i=1,#pipes do
+	  local p = pipes[i]
+	  if aabb(x, y, pwidth, pheight, p.x, p.y, p.width, p.height)  then
+		 return true
+	  end
+   end
+
+   return false
+end
+
 function updatePlayer(dt)
    if flap then
 	  vel = -9
@@ -41,6 +56,10 @@ function updatePlayer(dt)
 
    y = y + vel
    vel = vel + (dt * 17)
+
+   if playerCollidesWithPipe() then
+	  state = "collision"
+   end
 end
 
 local pipeSpacing = 270
@@ -72,8 +91,11 @@ function updatePipes(dt)
 end
 
 function love.update(dt)
-   updatePlayer(dt)
-   updatePipes(dt)
+   if state == "playing" then
+	  updatePlayer(dt)
+	  updatePipes(dt)
+   elseif state == "collision" then
+   end
 end
 
 function drawPlayer()
@@ -103,8 +125,14 @@ end
 
 function love.draw()
    gfx.clear(love.math.colorFromBytes(63, 63, 116, 255))
-   drawPipes()
-   drawPlayer()
+
+   if state == "playing" then
+	  drawPipes()
+	  drawPlayer()
+   elseif state == "collision" then
+	  drawPipes()
+	  drawPlayer()
+   end
 end
 
 function love.keypressed(key, _scancode, isrepeat)
