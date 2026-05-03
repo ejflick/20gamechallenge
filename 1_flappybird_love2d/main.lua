@@ -2,28 +2,18 @@ local gfx = love.graphics
 
 local font = nil
 local spriteSheet = nil
-local flapSound, hurtSound = nil
+local flapSound, hurtSound, scoreSound = nil
 
 function love.load()
    screenWidth, screenHeight = gfx.getDimensions()
 
    gfx.setDefaultFilter("nearest", "nearest")
 
-   if not font then
-	  font = love.graphics.newImageFont("font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-   end
-   
-   if not spriteSheet then
-	  spriteSheet = gfx.newImage("sprites.png")
-   end
-
-   if not flapSound then
-	  flapSound = love.audio.newSource(love.sound.newSoundData("jump.wav"))
-   end
-
-   if not hurtSound then
-	  hurtSound = love.audio.newSource(love.sound.newSoundData("hitHurt.wav"))
-   end
+   font = font or love.graphics.newImageFont("font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+   spriteSheet = spriteSheet or gfx.newImage("sprites.png")
+   flapSound = flapSound or love.audio.newSource(love.sound.newSoundData("jump.wav"))
+   hurtSound = hurtSound or love.audio.newSource(love.sound.newSoundData("hitHurt.wav"))
+   scoreSound = scoreSound or love.audio.newSource(love.sound.newSoundData("score.wav"))
    
    -- Player variables
    score = 0
@@ -116,6 +106,14 @@ function updatePipes(dt)
 	  local p = pipes[i]
 	  p.x = p.x - (dt * pipes.speed)
 
+	  -- Update score if player passed a pipe. We only count top pipes
+	  -- and will mark them once they've scored.
+	  if not p.countedForScore and p.isTop and p.x <= x - p.width then
+		 score = score + 1
+		 p.countedForScore = true
+		 scoreSound:play()
+	  end
+
 	  if p.x < -p.width - 12 then
 		 table.remove(pipes, i)
 	  end
@@ -123,7 +121,6 @@ function updatePipes(dt)
 
    pipes.timeTilNext = pipes.timeTilNext - dt
    
-
    if pipes.timeTilNext <= 0 then
 	  genPipe()
 	  pipes.timeTilNext = pipes.timeTilNext + pipes.interval
@@ -135,7 +132,9 @@ function updatePlayerColl(dt)
    vel = vel + (dt * gravity)
 
    if y > screenHeight + 400 then
+	  flap = false
 	  state = "showscore"
+	  scoreString = "Score:\n" .. score
    end
 end
 
@@ -145,6 +144,11 @@ function love.update(dt)
 	  updatePipes(dt)
    elseif state == "collision" then
 	  updatePlayerColl(dt)
+   elseif state == "showscore" then
+	  if flap == true then
+		 love.load()
+		 flap = false
+	  end
    end
 end
 
@@ -193,7 +197,12 @@ function love.draw()
 	  drawPipes()
 	  drawPlayer()
    elseif state == "showscore" then
-	  gfx.print(score, 32, 32, 0, 4, 4)
+	  gfx.setColor(0.1, 0.1, 0.1, 1)
+	  gfx.printf(scoreString, 4, (screenHeight / 3) + 4, screenWidth / 4, "center", 0, 4, 4)
+	  gfx.setColor(1, 1, 1, 1)
+	  gfx.printf(scoreString, 0, screenHeight / 3, screenWidth / 4, "center", 0, 4, 4)
+
+	  gfx.printf("Press spacebar to play again", 0, screenHeight - font:getHeight("Press spacebar to play again") - 24, screenWidth, "center")
    end
 end
 
