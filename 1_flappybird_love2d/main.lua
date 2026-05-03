@@ -11,9 +11,9 @@ function love.load()
 
    font = font or love.graphics.newImageFont("font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
    spriteSheet = spriteSheet or gfx.newImage("sprites.png")
-   flapSound = flapSound or love.audio.newSource(love.sound.newSoundData("jump.wav"))
-   hurtSound = hurtSound or love.audio.newSource(love.sound.newSoundData("hitHurt.wav"))
-   scoreSound = scoreSound or love.audio.newSource(love.sound.newSoundData("score.wav"))
+   flapSound = flapSound or love.audio.newSource("jump.wav", "static")
+   hurtSound = hurtSound or love.audio.newSource("hitHurt.wav", "static")
+   scoreSound = scoreSound or love.audio.newSource("score.wav", "static")
    
    -- Player variables
    score = 0
@@ -63,7 +63,6 @@ function toCollisionState()
    state = "collision"
    vel = -20
    gravity = 40
-   love.audio.stop()
    hurtSound:play()
 end
 
@@ -214,3 +213,10 @@ function love.keypressed(key, _scancode, isrepeat)
    end
 end
 
+function love.touchpressed()
+   flap = true
+end
+
+function love.mousepressed()
+   flap = true
+end
