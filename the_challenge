@@ -3,7 +3,7 @@ https://20_games_challenge.gitlab.io/
 
 First 10 that I'll do:
 - [x] Flappy Bird
-- [ ] Jetpack Joyride
+- [ ] Breakout
 - [ ] Frogger
 - [ ] Asteroids
 - [ ] Pac Man
@@ -12,3 +12,10 @@ First 10 that I'll do:
 - [ ] Starfox
 - [ ] Wolfenstein
 - [ ] Minecraft
+
+I'd like to try:
+- [x] Love2D
+- [ ] Pure HTML + JavaScript(No canvas! Divs only! Might work for frogger?)
+- [ ] HTML Canvas + JavaScript
+- [ ] Pygame
+- [ ] LWJGL (probably for the 3D stuff...)
