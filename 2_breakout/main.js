@@ -31,10 +31,22 @@ function clamp(val, lo, hi) {
 }
 
 function aabb(x1, y1, w1, h1, x2, y2, w2, h2) {
-	return x1 < x2 + w2 &&
-		x1 + w1 > x2 &&
-		y1 < y2 + h2 &&
-		y1 + h1 > y2;
+	if(x1 < x2 + w2 &&
+	   x1 + w1 > x2 &&
+	   y1 < y2 + h2 &&
+	   y1 + h1 > y2) {
+
+		let overlapX = Math.min(x1 + w1, x2 + w2) - Math.max(x1, x2);
+		let overlapY = Math.min(y1 + h2, y2 + h2) - Math.max(y1, y2);
+
+		if (overlapX < overlapY) {
+			return (x1 + (w1 / 2)) < (x2 + (w2 / 2)) ? "left" : "right";
+		}
+
+		return (y1 + (h1 / 2)) < (y2 + (h2 / 2)) ? "bottom" : "top";
+	}
+
+	return null;
 }
 
 const walls = (function() {
@@ -53,9 +65,7 @@ const walls = (function() {
 
 		collision(x, y, w, h) {
 			for (const wall of all) {
-				if (aabb(wall.x, wall.y, wall.w, wall.h, x, y, w, h)) {
-					return wall.id;
-				}
+				return aabb(x, y, w, h, wall.x, wall.y, wall.w, wall.h);
 			}
 		},
 	});
@@ -163,20 +173,15 @@ const ball = (function() {
 				x += velx * speed * dt;
 				y += vely * speed * dt;
 
-				if (paddle.collision(x, y, w, h)) {
-					vely *= -1;
-				}
-
-				let wallColl = walls.collision(x, y, w, h);
-				if (wallColl === "left") {
+				switch (paddle.collision(x, y, w, h) || walls.collision(x, y, w, h)) {
+				case "left": 
+				case "right": {
 					velx *= -1;
-					x = 24;
-				} else if (wallColl === "right" ) {
-					velx *= -1;
-					x = SCREEN_WIDTH - 24 - w;
-				} else if (wallColl === "top") {
+				} break;
+				case "top":
+				case "bottom": {
 					vely *= -1;
-					y = HUD_VERTICAL_SPACE + 24;
+				}; break;
 				}
 			},
 
