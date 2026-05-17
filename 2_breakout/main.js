@@ -1,247 +1,271 @@
 const canvas = document.getElementById("c");
 const ctxt = canvas.getContext("2d");
 
-// No right click menu.
-canvas.addEventListener("contextmenu", event => {
-	event.preventDefault();
-});
+const SCREEN_WIDTH = canvas.clientWidth;
+const SCREEN_HEIGHT = canvas.clientHeight;
 
-const SCREEN_WIDTH = 640;
-const SCREEN_HEIGHT = 480;
-
-const HUD_VERTICAL_SPACE = 24;
-
-const WORLD_WIDTH = SCREEN_WIDTH;
-const WORLD_HEIGHT = SCREEN_HEIGHT - HUD_VERTICAL_SPACE;
-
-let bricks = [];
-
-function drawRect(color, x, y, w, h) {
-	ctxt.fillStyle = color;
-	ctxt.fillRect(x, y, w, h);
-}
-
-function clamp(val, lo, hi) {
-	if (val < lo)
-		return lo;
-	if (val > hi)
-		return hi;
-
-	return val;
-}
-
-function aabb(x1, y1, w1, h1, x2, y2, w2, h2) {
-	if(x1 < x2 + w2 &&
-	   x1 + w1 > x2 &&
-	   y1 < y2 + h2 &&
-	   y1 + h1 > y2) {
-
-		let overlapX = Math.min(x1 + w1, x2 + w2) - Math.max(x1, x2);
-		let overlapY = Math.min(y1 + h2, y2 + h2) - Math.max(y1, y2);
-
-		if (overlapX < overlapY) {
-			return (x1 + (w1 / 2)) < (x2 + (w2 / 2)) ? "left" : "right";
-		}
-
-		return (y1 + (h1 / 2)) < (y2 + (h2 / 2)) ? "bottom" : "top";
+class Box {
+	constructor(x, y, width, height, velx = 0, vely = 0) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		this.velx = velx;
+		this.vely = vely;
+		this.speed = 0;
 	}
 
-	return null;
-}
-
-const walls = (function() {
-	let all = [
-		{ id: "top", x: 0, y: HUD_VERTICAL_SPACE, w: SCREEN_WIDTH, h: 24 },
-		{ id: "left", x: 0, y: HUD_VERTICAL_SPACE + 24, w: 24, h: SCREEN_HEIGHT },
-		{ id: "right", x: SCREEN_WIDTH - 24, y: HUD_VERTICAL_SPACE + 24, w: 24, h: SCREEN_HEIGHT },
-	];
-	
-	return Object.freeze({
-		render() {
-			all.forEach(function(wall) {
-				drawRect("#222233", wall.x, wall.y, wall.w, wall.h);
-			});
-		},
-
-		collision(x, y, w, h) {
-			for (const wall of all) {
-				return aabb(x, y, w, h, wall.x, wall.y, wall.w, wall.h);
-			}
-		},
-	});
-})();
-
-const paddle = (function() {
-	let x = (WORLD_WIDTH / 2) + 48,
-		y = SCREEN_HEIGHT - 36,
-		w = 96,
-		h = 18,
-		mouseListener = null;
-
-	
-	return Object.freeze({
-		init() {
-			x = (WORLD_WIDTH / 2) + 48;
-			y = SCREEN_HEIGHT - 36;
-			w = 96;
-			h = 18;
-
-			if (mouseListener) {
-				canvas.removeEventListener("mousemove", mouseListener);
-			}
-
-			mouseListener = function() {
-				x = clamp(event.clientX - (w / 2), 24, SCREEN_WIDTH - 24 - w);
-			}
-			canvas.addEventListener("mousemove", mouseListener);
-		},
-
-		collision(ox, oy, ow, oh) {
-			return aabb(ox, oy, ow, oh, x, y, w, h);
-		},
-		
-		render() {
-			drawRect("white", x, y, w, h);
-		},
-
-		get middleX() {
-			return x + (w / 2);
-		},
-
-		get y() {
-			return y;
+	draw(ctxt) {
+		if (this.color) {
+			ctxt.fillStyle = this.color;
+			ctxt.fillRect(this.x, this.y, this.width, this.height);
 		}
-	});
-})();
+	}
 
-const ball = (function() {
-	const speed = 150;
+	update() {
 
-	let x = 0,
-		y = 0,
-		w = 10,
-		h = 10,
-		velx = 0,
-		vely = 0,
-		clicked = undefined, // "left" or "right"
-		clickListener = undefined;
-	
-	const states = {
-		followingPaddle: {
-			init: function() {
-				clickListener = function(event) {
-					if (event.button == 0)
-						clicked = "left";
-					else if (event.button == 2)
-						clicked = "right";
-				};
-				
-				canvas.addEventListener("mousedown", clickListener);
-			},
-			
-			update(dt) {
-				y = paddle.y - (h * 1.5);
-				x = paddle.middleX - (w / 2);
+	}
 
-				if (clicked) {
-					const sqrtOf2 = Math.sqrt(2);
-					vely = -sqrtOf2;
+	onCollision(data) {
 
-					if (clicked === "left")
-						velx = -sqrtOf2;
-					else
-						velx = sqrtOf2;
-					
-					clicked == undefined;
-					state.exit();
-
-					state = states.bouncing;
-					state.init();
-				}
-			},
-
-			exit() {
-				canvas.removeEventListener("mousedown", clickListener);
-			},
-		},
-		
-		bouncing: {
-			init() {
-			},
-			
-			update(dt) {
-				x += velx * speed * dt;
-				y += vely * speed * dt;
-
-				switch (paddle.collision(x, y, w, h) || walls.collision(x, y, w, h)) {
-				case "left": 
-				case "right": {
-					velx *= -1;
-				} break;
-				case "top":
-				case "bottom": {
-					vely *= -1;
-				}; break;
-				}
-			},
-
-			exit() {
-			},
-		},
-		
-		resetting: {
-		},
-	};
-
-	let state = states.followingPaddle;
-	
-	return Object.freeze({
-		init() {
-			state = states.followingPaddle;
-			state.init();
-		},
-
-		render() {
-			drawRect("red", x, y, w, h);
-		},
-		
-		update(dt) {
-			state.update(dt);
-		},
-	});
-})();
-
-function init() {
-	paddle.init();
-	ball.init();
+	}
 }
 
-let lastTime = performance.now();
-let accumulator = 0;
-const minTimeStep = 1000 / 60;
+class Player extends Box {
+	constructor() {
+		super(0, 0, 96, 18);
+		this.x = (SCREEN_WIDTH / 2) - (this.width / 2);
+		this.y = SCREEN_HEIGHT - (2 * this.height);
+
+		this.color = "white";
+	}
+
+	init() {
+		canvas.addEventListener('contextmenu', event => {
+			event.preventDefault();
+		});
+		canvas.addEventListener('mousemove', event => {
+			this.x = event.clientX - (this.width / 2);
+		});
+		canvas.addEventListener('mousedown', event => {
+			if (event.button === 0) {
+				this.ball.launch("left");
+			} else if (event.button === 2) {
+				this.ball.launch("right");
+			}
+		});
+	}
+
+	yourBallIs(ball) { this.ball = ball; }
+}
+
+function sign(x) {
+	if (x === 0) return 0;
+	return x > 0 ? 1 : -1;
+}
+
+class Ball extends Box {
+	constructor(player) {
+		const myWidth = 8;
+		const myHeight = 8;
+		super(player.x + (player.width / 2) - (myWidth/2), player.y - myHeight * 2, myWidth, myHeight);
+
+		this.player = player;
+		this.color = "red";
+		this.state = "followingPaddle";
+	}
+
+	#move(dt, boxes) {
+		let collision = false;
+		for (const other of boxes) {
+			let xInvEntry = 0, yInvEntry = 0;
+			let xInvExit  = 0, yInvExit  = 0;
+
+			if (this.velx > 0.0) {
+				xInvEntry = other.x - (this.x + this.width);
+				xInvExit = (other.x + other.width) - this.x;
+			} else {
+				xInvEntry = (other.x + other.width) - this.x;
+				xInvExit = other.x - (this.x + this.width);
+			}
+
+			if (this.vely > 0.0) {
+				yInvEntry = other.y - (this.y + this.height);
+				yInvExit = (other.y + other.height) - this.y;
+			} else {
+				yInvEntry = (other.y + other.height) - this.y;
+				yInvExit = other.y - (this.y + this.height);
+			}
+
+			let xEntry = 0, yEntry = 0,
+				xExit  = 0, yExit  = 0;
+			
+			if (this.velx == 0.0) {
+				xEntry = -Infinity;
+				xExit = -Infinity;
+			} else {
+				xEntry = xInvEntry / this.velx;
+				xExit = xInvExit / this.velx;
+			}
+
+			if (this.vely == 0.0) {
+				yEntry = -Infinity;
+				yExit = -Infinity;
+			} else {
+				yEntry = yInvEntry / this.vely;
+				yExit = yInvExit / this.vely;
+			}
+			
+			let entryTime = Math.max(xEntry, yEntry);
+			let exitTime = Math.min(xExit, yExit);
+
+			if (entryTime > exitTime || xEntry < 0.0 && yEntry < 0.0 || xEntry > 1.0 || yEntry > 1.0) {
+				continue;
+			}
+
+			let normalx = 0, normaly = 0;
+
+			if (xEntry > yEntry) {
+				if (xInvEntry < 0) {
+					normalx = 1;
+					normaly = 0;
+				} else {
+					normalx = -1;
+					normaly = 0;
+				}
+			} else {
+				if (yInvEntry < 0) {
+					normalx = 0;
+					normaly = 1;
+				} else {
+					normalx = 0;
+					normaly = -1;
+				}
+			}
+
+			other.onCollision();
+
+			collision ||= true;
+		}
+
+		if (!collision) {
+			this.x += this.velx * this.speed * dt;
+			this.y += this.vely * this.speed * dt;
+		}
+	}
+
+	update(dt, boxes) {
+		if (this.state === "followingPaddle") {
+			this.x = this.player.x + (this.player.width / 2) - (this.width/2);
+			this.y = this.player.y - this.height * 2;
+		} else {
+			this.#move(dt, boxes);
+		}
+	}
+
+	launch(dir) {
+		if (this.state !== "followingPaddle") {
+			return;
+		}
+		
+		if (dir === "left") {
+			this.velx = -0.5;
+		} else if (dir === "right") {
+			this.velx = 0.5;
+		}
+
+		this.vely = -0.5;
+		this.speed = 200;
+
+		this.state = "bouncing";
+	}
+}
+
+class Brick extends Box {
+	onCollision(_data) {
+		this.delete = true;
+	}
+}
+
+let boxes,
+	ball,
+	player;
+
+let prevTime = performance.now();
 
 function render() {
 	const now = performance.now();
-	accumulator += now - lastTime;
-	lastTime = now;
-	
+	const elapsed = now - prevTime;
+	const dt = elapsed / 1000;
+	prevTime = now;
+
 	ctxt.fillStyle = "black";
-	ctxt.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	ctxt.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
-	while (accumulator >= minTimeStep) {
-		const dt = minTimeStep / 1000;
-
-		ball.update(dt);
-		
-		accumulator -= minTimeStep;
+	for (const box of boxes) {
+		box.update(dt, boxes);
+		box.draw(ctxt);
 	}
 
-	walls.render();
-	paddle.render();
-	ball.render();
-	
+	for (let i = boxes.size - 1; i >= 0; i--) {
+		if (boxes[i].delete === true)
+			boxes.splice(i, 1);
+	}
+
 	requestAnimationFrame(render);
 }
 
+function init() {
+	player = new Player();
+	ball = new Ball(player);
+	player.yourBallIs(ball);
+
+	const ceiling = new Box(0, 0, SCREEN_WIDTH, 12);
+	ceiling.color = "#212141ff";
+	const leftWall = new Box(0, 12, 20, SCREEN_HEIGHT);
+	leftWall.color = ceiling.color;
+	const rightWall = new Box(SCREEN_WIDTH - 12, 12, 20, SCREEN_HEIGHT);
+	rightWall.color = ceiling.color;
+
+	const bxPadding = 5;
+	const byPadding = 4;
+	const bHeight = 12;
+	const bWidth = 36;
+
+	const rows = 5;
+	const cols = 15;
+
+	let rowColors = [
+		"red",
+		"darkorange",
+		"yellow",
+		"green",
+		"blue",
+	];
+
+	let bricks = [];
+	for (let col = 0; col < cols; col++) {
+		for (let row = 0; row < cols; row++) {
+			const box = new Brick(
+				leftWall.width + (col * bWidth) + (col * bxPadding),
+				ceiling.height + (row * bHeight) + (row * byPadding),
+				bWidth,
+				bHeight
+			);
+			box.color = rowColors[row];
+			bricks.push(box);
+		}
+	}
+
+	boxes = [
+		player,
+		ball,
+		ceiling, leftWall, rightWall,
+		...bricks,
+	];
+
+	player.init();
+	render();
+}
+
 init();
-render();
