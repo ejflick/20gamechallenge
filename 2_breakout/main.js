@@ -254,11 +254,11 @@ function init() {
 	ball = new Ball(player);
 	player.yourBallIs(ball);
 
-	const ceiling = new Box(0, 0, SCREEN_WIDTH, 12);
+	const ceiling = new Box(0, -12, SCREEN_WIDTH, 12);
 	ceiling.color = "#212141ff";
-	const leftWall = new Box(0, 12, 20, SCREEN_HEIGHT - 12);
+	const leftWall = new Box(-20, 12, 20, SCREEN_HEIGHT - 12);
 	leftWall.color = ceiling.color;
-	const rightWall = new Box(SCREEN_WIDTH - 12, 12, 20, SCREEN_HEIGHT - 12);
+	const rightWall = new Box(SCREEN_WIDTH, 12, 20, SCREEN_HEIGHT - 12);
 	rightWall.color = ceiling.color;
 
 	const bxPadding = 5;
@@ -282,7 +282,7 @@ function init() {
 		for (let row = 0; row < rows; row++) {
 			const box = new Brick(
 				leftWall.width + (col * bWidth) + (col * bxPadding),
-				ceiling.height + (row * bHeight) + (row * byPadding),
+				ceiling.height + (row * bHeight) + ((row + 4) * byPadding),
 				bWidth,
 				bHeight
 			);
