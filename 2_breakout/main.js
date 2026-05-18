@@ -76,7 +76,9 @@ class Ball extends Box {
 	}
 
 	#move(dt, boxes) {
-		let collision = false;
+		let collisions = [];
+		let xMvmt = this.speed * dt * this.velx;
+		let yMvmt = this.speed * dt * this.vely;
 		for (const other of boxes) {
 			let xInvEntry = 0, yInvEntry = 0;
 			let xInvExit  = 0, yInvExit  = 0;
@@ -100,20 +102,20 @@ class Ball extends Box {
 			let xEntry = 0, yEntry = 0,
 				xExit  = 0, yExit  = 0;
 			
-			if (this.velx == 0.0) {
+			if (xMvmt === 0.0) {
 				xEntry = -Infinity;
-				xExit = -Infinity;
+				xExit = Infinity;
 			} else {
-				xEntry = xInvEntry / this.velx;
-				xExit = xInvExit / this.velx;
+				xEntry = xInvEntry / xMvmt;
+				xExit = xInvExit / xMvmt;
 			}
 
-			if (this.vely == 0.0) {
+			if (xMvmt === 0.0) {
 				yEntry = -Infinity;
-				yExit = -Infinity;
+				yExit = Infinity;
 			} else {
-				yEntry = yInvEntry / this.vely;
-				yExit = yInvExit / this.vely;
+				yEntry = yInvEntry / yMvmt;
+				yExit = yInvExit / yMvmt;
 			}
 			
 			let entryTime = Math.max(xEntry, yEntry);
@@ -143,14 +145,32 @@ class Ball extends Box {
 				}
 			}
 
-			other.onCollision();
-
-			collision ||= true;
+			other.onCollision({obj: this});
+			collisions.push({
+				normal: {x: normalx, y: normaly},
+				entryTime,
+				exitTime
+			});
 		}
 
-		if (!collision) {
-			this.x += this.velx * this.speed * dt;
-			this.y += this.vely * this.speed * dt;
+		if (collisions.length != 0) {
+			for (let c of collisions) {
+				if (c.normal.x > 0) {
+					this.velx = Math.abs(this.velx);
+				} else if (c.normal.x < 0) {
+					this.velx = -1 * Math.abs(this.velx);
+				} else if (c.normal.y > 0) {
+					this.vely = Math.abs(this.vely);
+				} else if (c.normal.y < 0) {
+					this.vely = -1 * Math.abs(this.vely);
+				}
+
+				this.x += xMvmt * c.entryTime;
+				this.y += yMvmt * c.entryTime;
+			}
+		} else {
+			this.x += xMvmt;
+			this.y += yMvmt;
 		}
 	}
 
@@ -161,6 +181,10 @@ class Ball extends Box {
 		} else {
 			this.#move(dt, boxes);
 		}
+	}
+
+	resetYourself() {
+		this.state = "followingPaddle";
 	}
 
 	launch(dir) {
@@ -175,7 +199,7 @@ class Ball extends Box {
 		}
 
 		this.vely = -0.5;
-		this.speed = 200;
+		this.speed = 340;
 
 		this.state = "bouncing";
 	}
@@ -184,6 +208,16 @@ class Ball extends Box {
 class Brick extends Box {
 	onCollision(_data) {
 		this.delete = true;
+	}
+}
+
+class OutOfBounds extends Box {
+	constructor() {
+		super(0, SCREEN_HEIGHT + 32, SCREEN_WIDTH, 64);
+	}
+
+	onCollision(data) {
+		data.obj.resetYourself();
 	}
 }
 
@@ -207,7 +241,7 @@ function render() {
 		box.draw(ctxt);
 	}
 
-	for (let i = boxes.size - 1; i >= 0; i--) {
+	for (let i = boxes.length - 1; i >= 0; i--) {
 		if (boxes[i].delete === true)
 			boxes.splice(i, 1);
 	}
@@ -222,9 +256,9 @@ function init() {
 
 	const ceiling = new Box(0, 0, SCREEN_WIDTH, 12);
 	ceiling.color = "#212141ff";
-	const leftWall = new Box(0, 12, 20, SCREEN_HEIGHT);
+	const leftWall = new Box(0, 12, 20, SCREEN_HEIGHT - 12);
 	leftWall.color = ceiling.color;
-	const rightWall = new Box(SCREEN_WIDTH - 12, 12, 20, SCREEN_HEIGHT);
+	const rightWall = new Box(SCREEN_WIDTH - 12, 12, 20, SCREEN_HEIGHT - 12);
 	rightWall.color = ceiling.color;
 
 	const bxPadding = 5;
@@ -245,7 +279,7 @@ function init() {
 
 	let bricks = [];
 	for (let col = 0; col < cols; col++) {
-		for (let row = 0; row < cols; row++) {
+		for (let row = 0; row < rows; row++) {
 			const box = new Brick(
 				leftWall.width + (col * bWidth) + (col * bxPadding),
 				ceiling.height + (row * bHeight) + (row * byPadding),
@@ -261,6 +295,7 @@ function init() {
 		player,
 		ball,
 		ceiling, leftWall, rightWall,
+		new OutOfBounds(),
 		...bricks,
 	];
 
