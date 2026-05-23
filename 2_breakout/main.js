@@ -1,8 +1,17 @@
+const PI_THIRD = Math.PI / 3;
+
 const canvas = document.getElementById("c");
 const ctxt = canvas.getContext("2d");
 
 const SCREEN_WIDTH = canvas.clientWidth;
 const SCREEN_HEIGHT = canvas.clientHeight;
+
+function clamp(val, lo, hi) {
+	if (val < lo) return lo;
+	else if (val > hi) return hi;
+
+	return val;
+}
 
 class Box {
 	constructor(x, y, width, height, velx = 0, vely = 0) {
@@ -29,6 +38,12 @@ class Box {
 	onCollision(data) {
 
 	}
+
+	normalizeVel() {
+		const dist = Math.hypot(this.velx, this.vely);
+		this.velx = this.velx / dist;
+		this.vely = this.vely / dist;
+	}
 }
 
 class Player extends Box {
@@ -45,7 +60,11 @@ class Player extends Box {
 			event.preventDefault();
 		});
 		canvas.addEventListener('mousemove', event => {
-			this.x = event.clientX - (this.width / 2);
+			const cbr = canvas.getBoundingClientRect();
+			this.x = event.clientX - (this.width / 2) - cbr.left;
+			this.x = this.x < 0 ? 
+			0 : 
+			(this.x + this.width > SCREEN_WIDTH ? SCREEN_WIDTH - this.width : this.x);
 		});
 		canvas.addEventListener('mousedown', event => {
 			if (event.button === 0) {
@@ -145,28 +164,44 @@ class Ball extends Box {
 				}
 			}
 
+
 			other.onCollision({obj: this});
 			collisions.push({
 				normal: {x: normalx, y: normaly},
 				entryTime,
-				exitTime
+				exitTime,
+				obj: other
 			});
 		}
 
 		if (collisions.length != 0) {
 			for (let c of collisions) {
-				if (c.normal.x > 0) {
-					this.velx = Math.abs(this.velx);
-				} else if (c.normal.x < 0) {
-					this.velx = -1 * Math.abs(this.velx);
-				} else if (c.normal.y > 0) {
-					this.vely = Math.abs(this.vely);
-				} else if (c.normal.y < 0) {
-					this.vely = -1 * Math.abs(this.vely);
+				if (c.obj instanceof Player && c.normal.y < 0) {
+					let pp = clamp((this.x - c.obj.x) / c.obj.width, 0, 1);
+					pp = 1 - pp;
+					const p = PI_THIRD + (pp * PI_THIRD);
+					this.velx = Math.cos(p);
+					this.vely = -Math.sin(p);
+				} else {
+					if (c.normal.y > 0) {
+						this.vely = Math.abs(this.vely);
+					} else if (c.normal.y < 0) {
+						this.vely = -1 * Math.abs(this.vely);
+					} else if (c.normal.x > 0) {
+						this.velx = Math.abs(this.velx);
+					} else if (c.normal.x < 0) {
+						this.velx = -1 * Math.abs(this.velx);
+					}
 				}
 
 				this.x += xMvmt * c.entryTime;
 				this.y += yMvmt * c.entryTime;
+
+				// Always bounce
+				// if (c.normal.x > 0 || c.normal.x < 0)
+				// 	this.y += (this.speed * dt * this.vely) * (1 - c.entryTime);
+				// else if (c.normal.y > 0 || c.normal.y < 0)
+				// 	this.x += (this.speed * dt * this.velx) * (1 - c.entryTime);
 			}
 		} else {
 			this.x += xMvmt;
@@ -256,18 +291,18 @@ function init() {
 
 	const ceiling = new Box(0, -12, SCREEN_WIDTH, 12);
 	ceiling.color = "#212141ff";
-	const leftWall = new Box(-20, 12, 20, SCREEN_HEIGHT - 12);
+	const leftWall = new Box(-20, 0, 20, SCREEN_HEIGHT);
 	leftWall.color = ceiling.color;
-	const rightWall = new Box(SCREEN_WIDTH, 12, 20, SCREEN_HEIGHT - 12);
+	const rightWall = new Box(SCREEN_WIDTH, 0, 20, SCREEN_HEIGHT);
 	rightWall.color = ceiling.color;
 
-	const bxPadding = 5;
-	const byPadding = 4;
+	const bxPadding = 6;
+	const byPadding = 8;
 	const bHeight = 12;
-	const bWidth = 36;
+	const bWidth = 54;
 
 	const rows = 5;
-	const cols = 15;
+	const cols = 9;
 
 	let rowColors = [
 		"red",
@@ -279,10 +314,10 @@ function init() {
 
 	let bricks = [];
 	for (let col = 0; col < cols; col++) {
-		for (let row = 0; row < rows; row++) {
+		for (let row = 0; row < rows; row++) {- 12
 			const box = new Brick(
-				leftWall.width + (col * bWidth) + (col * bxPadding),
-				ceiling.height + (row * bHeight) + ((row + 4) * byPadding),
+				(col * bWidth) + (col * bxPadding) + 50,
+				16 + (row * bHeight) + (row * byPadding),
 				bWidth,
 				bHeight
 			);

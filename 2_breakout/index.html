@@ -3,7 +3,11 @@
 	<title>Break Out</title>
 	<style>
 	  body {
-		  background-color: grey;
+		  background-color: #121112;
+		  /* padding: 0; */
+		  display: flex;
+		  justify-content: center;
+		  align-items: center;
 		  padding: 0;
 	  }
 
@@ -11,12 +15,29 @@
 		  margin: auto;
 		  width: 640px;
 		  height: 480px;
+		  image-resolution: pixelated;
+		  image-rendering: pixelated;
 	  }
+
+	  /* @media screen and (min-width: 1280px) and (min-height: 960px) {
+		#c {
+			width: 1280px;
+			height: 960px;
+		  	image-rendering: pixelated;
+		}
+	  }
+
+	  @media screen and (min-width: 1920px) and (min-height: 1440) {
+		#c {
+			width: 1920px;
+			height: 1440px;
+		  	image-rendering: pixelated;
+		}
+	  } */
 	</style>
   </head>
   <body>
 	<canvas id="c" width="640" height="480"></canvas>
-	<script src="renderer.js"></script>
 	<script src="main.js"></script>
   </body>
 </html>
