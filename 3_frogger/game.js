@@ -4,6 +4,14 @@ const SCREEN_HEIGHT = 600;
 const HUD_HEIGHT = 24;
 const FIELD_HEIGHT = SCREEN_HEIGHT - HUD_HEIGHT;
 
+/*
+  Lanes:
+  0: Safe,
+  1 - 4: Vehicles,
+  5: Safe,
+  6 - 10: Water
+  11: Safe
+*/
 const LANES = 12;
 const LANE_HEIGHT = FIELD_HEIGHT / LANES;
 
@@ -13,6 +21,10 @@ const ctxt = canvas.getContext("2d");
 const entities = new Array(LANES);
 for (let i = 0; i < LANES; i++)
 	entities[i] = [];
+
+function laneY(l) {
+	return FIELD_HEIGHT - (l * LANE_HEIGHT) - LANE_HEIGHT;
+}
 
 class Sprite {
 	constructor(x, y, width, height) {
@@ -35,12 +47,50 @@ class Sprite {
 	update(dt) {
 	}
 
-	
+	npcMove(dt) {
+		this.x -= dt * this.speed;
+
+		if (this.x + this.width < 0 || this.x > SCREEN_WIDTH) {
+			this.remove = true;
+		}
+	}
+}
+
+class Truck extends Sprite {
+	constructor(x, y) {
+		super(x, y + 3, 60, LANE_HEIGHT - 6);
+		this.speed = 96;
+	}
+
+	update(dt) {
+		super.npcMove(dt);
+	}
+
+	render() {
+		ctxt.fillStyle = "white";
+		ctxt.fillRect(this.x, this.y, this.width, this.height);
+	}
+}
+
+class Car extends Sprite {
+	constructor(x, y) {
+		super(x, y, 40, LANE_HEIGHT / 2);
+		this.speed = 96;
+	}
+
+	update(dt) {
+		super.npcMove(dt);
+	}
+
+	render() {
+		ctxt.fillStyle = "yellow";
+		ctxt.fillRect(this.x, this.y, this.width, this.height);
+	}
 }
 
 class Frog extends Sprite {
 	constructor() {
-		super(SCREEN_WIDTH / 2, FIELD_HEIGHT - 32, 32, 32);
+		super((SCREEN_WIDTH / 2) - 16, laneY(0), 36, LANE_HEIGHT);
 		addEventListener('keydown', evt => this.keyDownListener(evt));
 
 		this.inputMap = {
@@ -53,8 +103,8 @@ class Frog extends Sprite {
 		this.mvmtDests = [
 			{ x: 0, y: -LANE_HEIGHT },
 			{ x: 0, y: LANE_HEIGHT },
-			{ x: -LANE_HEIGHT, y: 0 },
-			{ x: LANE_HEIGHT, y: 0 },
+			{ x: -40, y: 0 },
+			{ x: 40, y: 0 },
 		];
 
 		this.interpMvmtTime = 0.16;
@@ -99,6 +149,64 @@ class Frog extends Sprite {
 	}
 }
 
+function vehicleSpawner(entities, y) {
+	const vehicleTypes = [
+		Car,
+		Truck
+	];
+
+	const weights = new Map();
+	weights.set(Car, 7);
+	weights.set(Truck, 3);
+	const totalWeight = weights.values().reduce((a,b) => a + b);
+
+	const pickType = function() {
+		let r = Math.floor(Math.random() * totalWeight);
+
+		for (let [type, weight] of weights) {
+			if (r < weight)
+				return type;
+
+			r -= weight;
+		}
+
+		throw Error("Should have picked a type!");
+	}
+
+	const randomSpawnTime = function() {
+		return 1.5 + Math.random() * 2;
+	}
+	
+	let timeSinceSpawn = 0,
+		nextSpawn = randomSpawnTime();
+
+	const spawn = function() {
+		const type = pickType();
+		entities[LANES - 3].push(new type(SCREEN_WIDTH, y));
+	};
+	
+	const update = function(dt) {
+		timeSinceSpawn += dt;
+
+		if (timeSinceSpawn < nextSpawn)
+			return;
+
+		spawn();
+
+		timeSinceSpawn = 0;
+		nextSpawn = randomSpawnTime();
+	};	  
+	
+	return Object.freeze({
+		update,
+	});
+}
+
+let vehicleSpawners = [];
+for (let i = 0; i < 4; i++) {
+	vehicleSpawners.push(vehicleSpawner(entities, laneY(i + 1)));
+}
+
 function renderField() {
 	// Start area
 	ctxt.fillStyle = "grey";
@@ -132,9 +240,19 @@ function render() {
 	const dt = elapsed / 1000;
 	lastTime = now;
 
-	for (let lane of entities)
-		for (let e of lane)
+	for (let lane of entities) {
+		for (let i = 0; i < lane.length; i++) {
+			const e = lane[i];
 			e.update(dt);
+			if (e.remove) {
+				lane.splice(i, 1);
+			}
+		}
+	}
+
+	for (vs of vehicleSpawners) {
+		vs.update(dt);
+	}
 	
 	ctxt.fillStyle = "black";
 	ctxt.fillRect(0, 0, SCREEN_WIDTH, HUD_HEIGHT);
