@@ -59,7 +59,7 @@ class Sprite {
 class Truck extends Sprite {
 	constructor(x, y) {
 		super(x, y + 3, 60, LANE_HEIGHT - 6);
-		this.speed = 96;
+		this.speed = 86 + ((Math.random() * 8) - 4);
 	}
 
 	update(dt) {
@@ -101,13 +101,11 @@ class Frog extends Sprite {
 		};
 
 		this.mvmtDests = [
-			{ x: 0, y: -LANE_HEIGHT },
-			{ x: 0, y: LANE_HEIGHT },
-			{ x: -40, y: 0 },
-			{ x: 40, y: 0 },
+			{ x: 0, y: -LANE_HEIGHT, time: 0.16 },
+			{ x: 0, y: LANE_HEIGHT, time: 0.16 },
+			{ x: -40, y: 0, time: 0.20 },
+			{ x: 40, y: 0, time: 0.20 },
 		];
-
-		this.interpMvmtTime = 0.16;
 	}
 
 	keyDownListener(evt) {
@@ -127,16 +125,21 @@ class Frog extends Sprite {
 	#doMoving(dt) {
 		if (!this.dest) {
 			const mvmt = this.mvmtDests[this.moving];
-			this.dest = { x: this.x + mvmt.x, y: this.y + mvmt.y, elapsed: 0 };
+			this.dest = {
+				x: this.x + mvmt.x,
+				y: this.y + mvmt.y,
+				totalTime: mvmt.time,
+				timer: 0
+			};
 		}
 
-		if ((this.dest.elapsed += dt) > this.interpMvmtTime) {
+		if ((this.dest.timer += dt) >= this.dest.totalTime) {
 			this.x = this.dest.x;
 			this.y = this.dest.y;
 			this.moving = null;
 			this.dest = null;
 		} else {
-			const progress = this.dest.elapsed / this.interpMvmtTime;
+			const progress = this.dest.timer / this.dest.totalTime;
 			this.x = this.x + ((this.dest.x - this.x) * progress);
 			this.y = this.y + ((this.dest.y - this.y) * progress);
 		}
@@ -181,6 +184,7 @@ function vehicleSpawner(entities, y) {
 		nextSpawn = randomSpawnTime();
 
 	const spawn = function() {
+		// The front and back shouldn't 
 		const type = pickType();
 		entities[LANES - 3].push(new type(SCREEN_WIDTH, y));
 	};
